@@ -1,0 +1,11 @@
+# Ignore the virtual environment folder
+venv/
+
+# Ignore the .env file where sensitive information is stored
+.env
+
+# Ignore system files
+.DS_Store
+
+# Ignore the data folder
+data/
