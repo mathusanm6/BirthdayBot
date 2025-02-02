@@ -20,6 +20,7 @@ intents.members = True  # To access member information
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ========================== Load data ==========================
+
 data_dir = "data"
 
 # Create a data directory if it doesn't exist
@@ -37,6 +38,7 @@ birthdays = load_json(birthdays_file)
 config = load_json(config_file)
 
 # ============== Load resources (GIFs and messages) ==============
+
 resources_dir = "resources"
 birthday_messages_file = os.path.join(resources_dir, "birthday_messages.json")
 gifs_file = os.path.join(resources_dir, "gifs.json")
@@ -272,6 +274,34 @@ async def remove_birthday_data(interaction: discord.Interaction):
             "Aucune donnée d'anniversaire n'a été trouvée pour ce serveur.",
             ephemeral=True,
         )
+
+
+@bot.tree.command(name="help", description="Affiche l'aide détaillée du bot")
+async def help_command(interaction: discord.Interaction):
+    """Affiche un message d'aide ressemblant à une sortie de terminal Unix."""
+    help_message = (
+        "```\n"
+        "Bienvenue sur l'aide du Birthday Bot\n"
+        "-------------------------------------\n"
+        "$ /set_birthday <date>\n"
+        "    Enregistre ton anniversaire (format: JJ-MM) 🎂\n\n"
+        "$ /set_birthday_channel\n"
+        "    Configure ce salon pour les annonces d'anniversaire 🎉\n\n"
+        "$ /upcoming_birthdays\n"
+        "    Affiche la liste des anniversaires à venir.\n\n"
+        "$ /send_test_announcement\n"
+        "    Envoie un message de test pour les annonces (Admin uniquement) 🔧\n\n"
+        "$ /remove_birthday_channel\n"
+        "    Supprime la configuration du salon d'annonces (Admin uniquement)\n\n"
+        "$ /remove_birthday_data\n"
+        "    Supprime toutes les données d'anniversaire pour ce serveur (Admin uniquement)\n\n"
+        "$ /help\n"
+        "    Affiche ce message d'aide.\n"
+        "-------------------------------------\n"
+        "Merci d'utiliser Birthday Bot!\n"
+        "```"
+    )
+    await interaction.response.send_message(help_message, ephemeral=True)
 
 
 # ===================== Birthday check ========================
