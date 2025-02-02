@@ -278,50 +278,56 @@ async def remove_birthday_data(interaction: discord.Interaction):
 
 @bot.tree.command(name="help", description="Display help message")
 async def help_command(interaction: discord.Interaction):
-    """Displays a help message with a list of available commands."""
+    """Displays a help message with a list of available commands in a nicely formatted embed."""
     is_admin = interaction.user.guild_permissions.administrator
 
-    lines = [
-        "```\n"
-        "Bienvenue sur l'aide du Birthday Bot\n"
-        "-------------------------------------",
-        "$ /set_birthday <date>",
-        "    Enregistre ton anniversaire (format: JJ-MM) 🎂",
-        "",
-        "$ /upcoming_birthdays",
-        "    Affiche la liste des anniversaires à venir.",
-        "",
-    ]
-
-    if is_admin:
-        admin_lines = [
-            "$ /send_test_announcement",
-            "    Envoie un message de test pour les annonces (Admin uniquement) 🔧",
-            "",
-            "$ /set_birthday_channel",
-            "    Configure ce salon pour les annonces d'anniversaire 🎉 (Admin uniquement)",
-            "",
-            "$ /remove_birthday_channel",
-            "    Supprime la configuration du salon d'annonces (Admin uniquement)",
-            "",
-            "$ /remove_birthday_data",
-            "    Supprime toutes les données d'anniversaire pour ce serveur (Admin uniquement)",
-            "",
-        ]
-        lines.extend(admin_lines)
-
-    lines.extend(
-        [
-            "$ /help",
-            "    Affiche ce message d'aide.",
-            "-------------------------------------",
-            "Merci d'utiliser Birthday Bot!",
-            "```",
-        ]
+    embed = discord.Embed(
+        title="🎉 Birthday Bot Help",
+        description="Voici la liste des commandes disponibles:",
+        color=discord.Color.blue(),
     )
 
-    help_message = "\n".join(lines)
-    await interaction.response.send_message(help_message, ephemeral=True)
+    # User commands
+    embed.add_field(
+        name="/set_birthday <date>",
+        value="Enregistre ton anniversaire (format: JJ-MM) 🎂",
+        inline=False,
+    )
+    embed.add_field(
+        name="/upcoming_birthdays",
+        value="Affiche la liste des anniversaires à venir.",
+        inline=False,
+    )
+
+    # Admin commands
+    if is_admin:
+        embed.add_field(
+            name="/send_test_announcement",
+            value="Envoie un message de test pour les annonces (Admin uniquement) 🔧",
+            inline=False,
+        )
+        embed.add_field(
+            name="/set_birthday_channel",
+            value="Configure ce salon pour les annonces d'anniversaire (Admin uniquement) 🎉",
+            inline=False,
+        )
+        embed.add_field(
+            name="/remove_birthday_channel",
+            value="Supprime la configuration du salon d'annonces (Admin uniquement)",
+            inline=False,
+        )
+        embed.add_field(
+            name="/remove_birthday_data",
+            value="Supprime toutes les données d'anniversaire pour ce serveur (Admin uniquement)",
+            inline=False,
+        )
+
+    # Always available command
+    embed.add_field(name="/help", value="Affiche ce message d'aide.", inline=False)
+
+    embed.set_footer(text="Merci d'utiliser Birthday Bot!")
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # ===================== Birthday check ========================
