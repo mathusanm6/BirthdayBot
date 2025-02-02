@@ -276,31 +276,51 @@ async def remove_birthday_data(interaction: discord.Interaction):
         )
 
 
-@bot.tree.command(name="help", description="Affiche l'aide détaillée du bot")
+@bot.tree.command(name="help", description="Display help message")
 async def help_command(interaction: discord.Interaction):
-    """Affiche un message d'aide ressemblant à une sortie de terminal Unix."""
-    help_message = (
+    """Displays a help message with a list of available commands."""
+    is_admin = interaction.user.guild_permissions.administrator
+
+    lines = [
         "```\n"
         "Bienvenue sur l'aide du Birthday Bot\n"
-        "-------------------------------------\n"
-        "$ /set_birthday <date>\n"
-        "    Enregistre ton anniversaire (format: JJ-MM) 🎂\n\n"
-        "$ /set_birthday_channel\n"
-        "    Configure ce salon pour les annonces d'anniversaire 🎉\n\n"
-        "$ /upcoming_birthdays\n"
-        "    Affiche la liste des anniversaires à venir.\n\n"
-        "$ /send_test_announcement\n"
-        "    Envoie un message de test pour les annonces (Admin uniquement) 🔧\n\n"
-        "$ /remove_birthday_channel\n"
-        "    Supprime la configuration du salon d'annonces (Admin uniquement)\n\n"
-        "$ /remove_birthday_data\n"
-        "    Supprime toutes les données d'anniversaire pour ce serveur (Admin uniquement)\n\n"
-        "$ /help\n"
-        "    Affiche ce message d'aide.\n"
-        "-------------------------------------\n"
-        "Merci d'utiliser Birthday Bot!\n"
-        "```"
+        "-------------------------------------",
+        "$ /set_birthday <date>",
+        "    Enregistre ton anniversaire (format: JJ-MM) 🎂",
+        "",
+        "$ /upcoming_birthdays",
+        "    Affiche la liste des anniversaires à venir.",
+        "",
+    ]
+
+    if is_admin:
+        admin_lines = [
+            "$ /send_test_announcement",
+            "    Envoie un message de test pour les annonces (Admin uniquement) 🔧",
+            "",
+            "$ /set_birthday_channel",
+            "    Configure ce salon pour les annonces d'anniversaire 🎉 (Admin uniquement)",
+            "",
+            "$ /remove_birthday_channel",
+            "    Supprime la configuration du salon d'annonces (Admin uniquement)",
+            "",
+            "$ /remove_birthday_data",
+            "    Supprime toutes les données d'anniversaire pour ce serveur (Admin uniquement)",
+            "",
+        ]
+        lines.extend(admin_lines)
+
+    lines.extend(
+        [
+            "$ /help",
+            "    Affiche ce message d'aide.",
+            "-------------------------------------",
+            "Merci d'utiliser Birthday Bot!",
+            "```",
+        ]
     )
+
+    help_message = "\n".join(lines)
     await interaction.response.send_message(help_message, ephemeral=True)
 
 
