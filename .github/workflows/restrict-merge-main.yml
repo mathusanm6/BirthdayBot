@@ -1,0 +1,17 @@
+name: Restrict Merge to Main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check source branch
+        run: |
+          if [[ "${{ github.event.pull_request.base.ref }}" == "main" && "${{ github.event.pull_request.head.ref }}" != "develop" ]]; then
+            echo "Pull requests to main must come from develop!"
+            exit 1
+          fi
