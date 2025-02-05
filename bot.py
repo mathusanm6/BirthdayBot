@@ -71,7 +71,7 @@ async def on_ready():
 # ======================= Bot commands ========================
 
 
-@bot.tree.command(name="set_birthday", description="Set your birthday (format DD-MM)")
+@bot.tree.command(name="set_birthday", description="Set your birthday (format DD/MM)")
 async def set_birthday(interaction: discord.Interaction, date: str):
     """Allows a user to record their birthday."""
     if not interaction.guild:
@@ -80,10 +80,10 @@ async def set_birthday(interaction: discord.Interaction, date: str):
         )
         return
     try:
-        datetime.datetime.strptime(date, "%d-%m")
+        datetime.datetime.strptime(date, "%d/%m")
     except ValueError:
         await interaction.response.send_message(
-            "❌ Format invalide ! Utilise le format DD-MM (ex : 20-05).", ephemeral=True
+            "❌ Format invalide ! Utilise le format DD-MM (ex : 20/05).", ephemeral=True
         )
         return
     guild_id = str(interaction.guild.id)
