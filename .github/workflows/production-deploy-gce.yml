@@ -15,6 +15,7 @@ jobs:
 
       - name: Setup SSH Key
         run: |
+          mkdir -p ~/.ssh  # Ensure the directory exists
           echo "${{ secrets.GCE_SSH_KEY }}" > ~/.ssh/github_actions_deploy_key
           chmod 600 ~/.ssh/github_actions_deploy_key
 
