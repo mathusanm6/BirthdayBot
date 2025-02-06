@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from json_helper import load_json, save_json
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(".env")
 TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
 # Activate necessary intents
