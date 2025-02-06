@@ -1,0 +1,27 @@
+name: Deploy to Production GCE
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Deploy to GCE via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.GCE_HOST }}
+          username: ${{ secrets.GCE_USER }}
+          key: ${{ secrets.GCE_SSH_KEY }}
+          port: ${{ secrets.GCE_PORT }} # optional; if not set, defaults to 22
+          script: |
+            cd ~/Production-BirthdayBot
+            git pull
+            # Restart the bot as it is running as a service.
+            sudo systemctl restart production-birthdaybot.service
