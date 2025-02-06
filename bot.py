@@ -83,7 +83,7 @@ async def set_birthday(interaction: discord.Interaction, date: str):
         datetime.datetime.strptime(date, "%d/%m")
     except ValueError:
         await interaction.response.send_message(
-            "❌ Format invalide ! Utilise le format DD-MM (ex : 20/05).", ephemeral=True
+            "❌ Format invalide ! Utilise le format DD/MM (ex : 20/05).", ephemeral=True
         )
         return
     guild_id = str(interaction.guild.id)
