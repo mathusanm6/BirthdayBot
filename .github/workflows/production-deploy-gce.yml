@@ -19,7 +19,7 @@ jobs:
           host: ${{ secrets.GCE_HOST }}
           username: ${{ secrets.GCE_USER }}
           key: ${{ secrets.GCE_SSH_KEY }}
-          port: 33
+          port: ${{ secrets.GCE_SSH_PORT }} # Optional, default is 22
           script: |
             cd ~/Production-BirthdayBot
             git pull
