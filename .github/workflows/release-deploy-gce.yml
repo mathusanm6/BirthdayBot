@@ -13,15 +13,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Setup SSH Key
+        run: |
+          echo "${{ secrets.GCE_SSH_KEY }}" > ~/.ssh/github_actions_deploy_key
+          chmod 600 ~/.ssh/github_actions_deploy_key
+
       - name: Deploy to GCE via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.GCE_HOST }}
           username: ${{ secrets.GCE_USER }}
-          key: ${{ secrets.GCE_SSH_KEY }}
-          port: ${{ secrets.GCE_PORT }}   # optional; if not set, defaults to 22
+          key: ~/.ssh/github_actions_deploy_key
+          port: 22
           script: |
             cd ~/BirthdayBot
             git pull
             # Restart the bot as it is running as a service.
             sudo systemctl restart birthdaybot.service
+
+      - name: Clean Up SSH Key
+        run: rm -f ~/.ssh/github_actions_deploy_key
