@@ -18,14 +18,10 @@ jobs:
         with:
           host: ${{ secrets.GCE_HOST }}
           username: ${{ secrets.GCE_USER }}
-          key: ~/.ssh/github_actions_deploy_key
+          key: ${{ secrets.GCE_SSH_KEY }}
           port: 22
           script: |
-            mkdir -p ~/.ssh  # Ensure the directory exists
-            echo "${{ secrets.GCE_SSH_KEY }}" > ~/.ssh/github_actions_deploy_key
-            chmod 600 ~/.ssh/github_actions_deploy_key
             cd ~/Production-BirthdayBot
             git pull
             # Restart the bot as it is running as a service.
             sudo systemctl restart production-birthdaybot.service
-            rm -f ~/.ssh/github_actions_deploy_key
