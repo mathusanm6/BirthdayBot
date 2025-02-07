@@ -119,22 +119,47 @@ async def birthday_all(interaction: discord.Interaction):
         )
         return
     guild_id = str(interaction.guild.id)
-    if guild_id not in birthdays or not birthdays[guild_id]:
+    today = datetime.datetime.utcnow().date()
+    upcoming = []
+    if guild_id in birthdays:
+        for user_id, bday_str in birthdays[guild_id].items():
+            try:
+                day, month = map(int, bday_str.split("/"))
+                birthday_this_year = datetime.date(today.year, month, day)
+                if birthday_this_year < today:
+                    next_birthday = datetime.date(today.year + 1, month, day)
+                else:
+                    next_birthday = birthday_this_year
+                delta = (next_birthday - today).days
+                upcoming.append((delta, next_birthday, user_id))
+            except Exception as e:
+                print(
+                    f"Erreur pour l'utilisateur {user_id} avec la date {bday_str}: {e}"
+                )
+    if not upcoming:
         await interaction.response.send_message(
             "Aucun anniversaire n'est enregistré sur ce serveur.", ephemeral=True
         )
         return
-
+    upcoming.sort(key=lambda x: x[0])
     embed = discord.Embed(
-        title="🎉 Anniversaires enregistrés", color=discord.Color.blue()
+        title="🎉 Anniversaires à venir",
+        description="Voici la liste des anniversaires à venir :",
+        color=discord.Color.blue(),
     )
-    for user_id, bday in birthdays[guild_id].items():
+    for delta, next_birthday, user_id in upcoming:
         try:
             user = await bot.fetch_user(int(user_id))
             username = user.name
         except Exception:
-            username = f"Membre inconnu ({user_id})"
-        embed.add_field(name=username, value=f"{bday}", inline=False)
+            username = f"Utilisateur inconnu ({user_id})"
+        formatted_date = next_birthday.strftime("%d/%m")
+        day_text = "jour" if delta == 1 else "jours"
+        embed.add_field(
+            name=username,
+            value=f"Le **{formatted_date}** (dans **{delta}** {day_text})",
+            inline=False,
+        )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
