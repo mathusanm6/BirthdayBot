@@ -31,7 +31,7 @@ birthdays_file = os.path.join(data_dir, "birthdays.json")
 config_file = os.path.join(data_dir, "config.json")
 
 # The birthdays.json file should have a structure like:
-# { guild_id: { user_id: "DD-MM", ... }, ... }
+# { guild_id: { user_id: "DD/MM", ... }, ... }
 birthdays = load_json(birthdays_file)
 # The config.json file should have a structure like:
 # { guild_id: { "birthday_channel": channel_id, ... }, ... }
@@ -133,7 +133,7 @@ async def upcoming_birthdays(interaction: discord.Interaction):
     if guild_id in birthdays:
         for user_id, bday_str in birthdays[guild_id].items():
             try:
-                day, month = map(int, bday_str.split("-"))
+                day, month = map(int, bday_str.split("/"))
                 birthday_this_year = datetime.date(today.year, month, day)
                 if birthday_this_year < today:
                     next_birthday = datetime.date(today.year + 1, month, day)
@@ -290,7 +290,7 @@ async def help_command(interaction: discord.Interaction):
     # User commands
     embed.add_field(
         name="/set_birthday <date>",
-        value="Enregistre ton anniversaire (format: JJ-MM) 🎂",
+        value="Enregistre ton anniversaire (format: JJ/MM) 🎂",
         inline=False,
     )
     embed.add_field(
@@ -335,8 +335,8 @@ async def help_command(interaction: discord.Interaction):
 
 @tasks.loop(time=datetime.time(hour=0, minute=0))
 async def check_birthdays():
-    # Get today's date in "DD-MM" format
-    today = datetime.datetime.utcnow().strftime("%d-%m")
+    # Get today's date in "DD/MM" format
+    today = datetime.datetime.utcnow().strftime("%d/%m")
     for guild_id, guild_config in config.items():
         channel_id = guild_config.get("birthday_channel")
         if not channel_id:
