@@ -223,42 +223,44 @@ class ConfirmAnnouncementView(discord.ui.View):
         super().__init__(timeout=60)
         self.bot = bot
         self.interaction = interaction
-        self.target = target  # May be None; in that case "Test" is used.
+        self.target = target  # May be None; in that case, "Test" is used.
         self.value = None
 
     @discord.ui.button(label="Confirmer", style=discord.ButtonStyle.green)
     async def confirm(
-        self, button: discord.ui.Button, button_interaction: discord.Interaction
+        self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         # Only the command invoker may confirm.
-        if button_interaction.user != self.interaction.user:
-            await button_interaction.response.send_message(
+        if interaction.user != self.interaction.user:
+            await interaction.response.send_message(
                 "Tu n'as pas la permission de confirmer.", ephemeral=True
             )
             return
+
+        await interaction.response.defer()
         self.value = True
-        self.stop()
 
         guild_id = str(self.interaction.guild.id)
         channel_id = config.get(guild_id, {}).get("birthday_channel")
         if not channel_id:
-            await button_interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Aucun salon d'annonces configuré.", ephemeral=True
             )
             return
+
         channel = self.bot.get_channel(channel_id)
         if not channel:
-            await button_interaction.response.send_message(
+            await interaction.followup.send(
                 "❌ Salon d'annonces introuvable.", ephemeral=True
             )
             return
 
         gif_url = random.choice(GIFS)
-        # Use the provided member’s mention if given; otherwise "Test"
         user_display = self.target.mention if self.target is not None else "Test"
         message_text = random.choice(BIRTHDAY_MESSAGES).format(user=user_display)
         embed = discord.Embed(description=message_text, color=discord.Color.green())
         embed.set_image(url=gif_url)
+
         try:
             msg = await channel.send(embed=embed)
             thread_name = (
@@ -272,26 +274,27 @@ class ConfirmAnnouncementView(discord.ui.View):
             await thread.send(
                 "@everyone Bienvenue dans ce fil de discussion pour souhaiter un joyeux anniversaire !"
             )
-            await button_interaction.response.send_message(
+            await interaction.followup.send(
                 "✅ Message de test envoyé avec succès.", ephemeral=True
             )
         except Exception as e:
-            await button_interaction.response.send_message(
+            await interaction.followup.send(
                 f"❌ Erreur lors de l'envoi: {e}", ephemeral=True
             )
 
+        self.stop()
+
     @discord.ui.button(label="Annuler", style=discord.ButtonStyle.red)
-    async def cancel(
-        self, button: discord.ui.Button, button_interaction: discord.Interaction
-    ):
-        if button_interaction.user != self.interaction.user:
-            await button_interaction.response.send_message(
-                "Tu n'as pas la permission de confirmer.", ephemeral=True
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.interaction.user:
+            await interaction.response.send_message(
+                "Tu n'as pas la permission d'annuler.", ephemeral=True
             )
             return
+
         self.value = False
         self.stop()
-        await button_interaction.response.send_message(
+        await interaction.response.send_message(
             "Annulation de l'envoi de l'annonce.", ephemeral=True
         )
 
