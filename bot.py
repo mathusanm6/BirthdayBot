@@ -386,10 +386,6 @@ async def birthday_help(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# Add the birthday command group to the bot's tree
-bot.tree.add_command(birthday)
-
-
 # ========================== Birthday Check Task ==========================
 @tasks.loop(time=datetime.time(hour=0, minute=0))
 async def check_birthdays():
@@ -441,12 +437,10 @@ async def on_ready():
     try:
         # Clear all existing commands
         bot.tree.clear_commands(guild=None)
-        # Add the birthday command group to the bot's tree
-        bot.tree.add_command(birthday)
-        # Loop through each guild and sync commands as guild commands.
+        # Add the birthday command group to all guilds
         for guild in bot.guilds:
-            await bot.tree.sync(guild=guild)
-            print(f"Commands synced for guild: {guild.name} (ID: {guild.id})")
+            bot.tree.add_command(birthday, guild=discord.Object(id=guild.id))
+            await bot.tree.sync(guild=discord.Object(id=guild.id))
     except Exception as e:
         print(f"Error during guild-specific command sync: {e}")
     check_birthdays.start()
