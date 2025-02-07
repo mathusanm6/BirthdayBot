@@ -277,7 +277,7 @@ class ConfirmAnnouncementView(discord.ui.View):
                 "@everyone Bienvenue dans ce fil de discussion pour souhaiter un joyeux anniversaire !"
             )
             await interaction.followup.send(
-                "✅ Message de test envoyé avec succès.", ephemeral=True
+                "✅ Message d'annonce envoyé avec succès.", ephemeral=True
             )
         except Exception as e:
             await interaction.followup.send(
