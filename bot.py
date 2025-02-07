@@ -437,16 +437,18 @@ async def check_birthdays():
 
 @bot.event
 async def on_ready():
-    print(f"Connecté en tant que {bot.user}")
+    print(f"Connected as {bot.user}")
     try:
         # Clear all existing commands
         bot.tree.clear_commands(guild=None)
         # Add the birthday command group to the bot's tree
         bot.tree.add_command(birthday)
-        await bot.tree.sync()
-        print("Commandes slash synchronisées avec succès.")
+        # Loop through each guild and sync commands as guild commands.
+        for guild in bot.guilds:
+            await bot.tree.sync(guild=guild)
+            print(f"Commands synced for guild: {guild.name} (ID: {guild.id})")
     except Exception as e:
-        print(f"Erreur lors de la synchronisation des commandes : {e}")
+        print(f"Error during guild-specific command sync: {e}")
     check_birthdays.start()
 
 
