@@ -2,7 +2,6 @@ import datetime
 import discord
 import os
 import random
-from typing import Optional
 
 from discord.ext import commands, tasks
 from dotenv import load_dotenv
@@ -218,12 +217,12 @@ class ConfirmAnnouncementView(discord.ui.View):
         self,
         bot: commands.Bot,
         interaction: discord.Interaction,
-        target: Optional[discord.Member],
+        target: discord.Member,
     ):
         super().__init__(timeout=60)
         self.bot = bot
         self.interaction = interaction
-        self.target = target  # May be None; in that case, "Test" is used.
+        self.target = target  # The member to announce the birthday for
         self.value = None
 
     @discord.ui.button(label="Confirmer", style=discord.ButtonStyle.green)
@@ -255,19 +254,22 @@ class ConfirmAnnouncementView(discord.ui.View):
             )
             return
 
+        if not self.target:
+            await interaction.followup.send(
+                "❌ Aucun membre spécifié pour l'annonce. Veuillez réessayer avec un membre.",
+                ephemeral=True,
+            )
+            return
+
         gif_url = random.choice(GIFS)
-        user_display = self.target.mention if self.target is not None else "Test"
+        user_display = self.target.mention
         message_text = random.choice(BIRTHDAY_MESSAGES).format(user=user_display)
         embed = discord.Embed(description=message_text, color=discord.Color.green())
         embed.set_image(url=gif_url)
 
         try:
             msg = await channel.send(embed=embed)
-            thread_name = (
-                f"Souhaits pour {self.target.name}"
-                if self.target is not None
-                else "Test - Souhaits"
-            )
+            thread_name = f"Souhaits pour {self.target.name}"
             thread = await msg.create_thread(
                 name=thread_name, auto_archive_duration=1440
             )
@@ -307,9 +309,7 @@ class ConfirmAnnouncementView(discord.ui.View):
     ),
 )
 @discord.app_commands.checks.has_permissions(administrator=True)
-async def birthday_announce(
-    interaction: discord.Interaction, user: Optional[discord.Member] = None
-):
+async def birthday_announce(interaction: discord.Interaction, user: discord.Member):
     if not interaction.guild:
         await interaction.response.send_message(
             "Cette commande ne peut être utilisée que sur un serveur.", ephemeral=True
@@ -340,14 +340,11 @@ async def birthday_announce(
         else:
             # Announce for the specified user.
             target = user
-    else:
-        # If no user provided, fallback to using "Test" (as handled in ConfirmAnnouncementView)
-        target = None
 
-    # Show a confirmation prompt before sending the test announcement.
+    # Show a confirmation prompt before sending the announcement.
     view = ConfirmAnnouncementView(bot, interaction, target=target)
     await interaction.response.send_message(
-        "⚠️ Veuillez confirmer l'envoi de l'annonce de test.",
+        "⚠️ Veuillez confirmer l'envoi de l'annonce d'anniversaire.",
         view=view,
         ephemeral=True,
     )
@@ -400,7 +397,6 @@ async def birthday_help(interaction: discord.Interaction):
             value=(
                 "Envoie une annonce pour l'anniversaire d'un membre (Admin uniquement). "
                 "Un dialogue de confirmation s'affiche avant l'envoi. "
-                "Si aucun membre n'est spécifié, 'Test' sera utilisé."
             ),
             inline=False,
         )
