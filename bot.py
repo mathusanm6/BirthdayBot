@@ -275,9 +275,7 @@ class ConfirmAnnouncementView(discord.ui.View):
 @birthday.command(
     name="announce",
     description=(
-        "Envoie une annonce pour l'anniversaire d'un membre (Admin uniquement). "
-        "Si un membre est fourni, l'annonce sera envoyée pour cet membre. "
-        "Si le membre fourni est Birthday Bot, sa date d'anniversaire sera enregistrée (si non déjà fait) et son anniversaire sera annoncé."
+        "Annonce l'anniversaire d'un membre et ouvre un fil de discussion. (Admin uniquement)"
     ),
 )
 @discord.app_commands.checks.has_permissions(administrator=True)
