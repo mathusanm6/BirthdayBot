@@ -277,7 +277,7 @@ class ConfirmAnnouncementView(discord.ui.View):
                 "@everyone Bienvenue dans ce fil de discussion pour souhaiter un joyeux anniversaire !"
             )
             await interaction.followup.send(
-                "✅ Message d'annonce envoyé avec succès.", ephemeral=True
+                "✅ Message envoyé avec succès.", ephemeral=True
             )
         except Exception as e:
             await interaction.followup.send(
@@ -384,19 +384,19 @@ async def birthday_help(interaction: discord.Interaction):
     if is_admin:
         embed.add_field(
             name="/birthday set_channel",
-            value="Configure ce salon pour les annonces d'anniversaire (Admin uniquement).",
+            value="Configure ce salon pour les annonces d'anniversaire. (Admin uniquement)",
             inline=False,
         )
         embed.add_field(
             name="/birthday remove_channel",
-            value="Supprime la configuration du salon d'annonces (Admin uniquement).",
+            value="Supprime la configuration du salon d'annonces. (Admin uniquement)",
             inline=False,
         )
         embed.add_field(
             name="/birthday announce [member]",
             value=(
-                "Envoie une annonce pour l'anniversaire d'un membre (Admin uniquement). "
-                "Un dialogue de confirmation s'affiche avant l'envoi. "
+                "Envoie une annonce pour l'anniversaire d'un membre. "
+                "Un dialogue de confirmation s'affiche avant l'envoi. (Admin uniquement)"
             ),
             inline=False,
         )
