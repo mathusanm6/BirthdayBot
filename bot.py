@@ -37,7 +37,7 @@ birthdays = load_json(birthdays_file)
 # { guild_id: { "birthday_channel": channel_id, ... }, ... }
 config = load_json(config_file)
 
-# ============== Load resources (GIFs and messages) ==============
+# =================== Load resources (GIFs and messages) ===================
 
 resources_dir = "resources"
 birthday_messages_file = os.path.join(resources_dir, "birthday_messages.json")
@@ -53,27 +53,16 @@ BIRTHDAY_MESSAGES = resources_birthday_data.get("BIRTHDAY_MESSAGES", [])
 resources_gif_data = load_json(gifs_file)
 GIFS = resources_gif_data.get("GIFS", [])
 
-# ===================== Bot events ==========================
+# ========================== Define the /birthday Command Group ==========================
+
+birthday = discord.app_commands.Group(
+    name="birthday", description="Commandes liées aux anniversaires"
+)
 
 
-@bot.event
-async def on_ready():
-    print(f"Connecté en tant que {bot.user}")
-    try:
-        await bot.tree.sync()
-        print("Commandes slash synchronisées avec succès.")
-    except Exception as e:
-        print(f"Erreur lors de la synchronisation des commandes : {e}")
-    check_birthdays.start()
-    await check_birthdays()
-
-
-# ======================= Bot commands ========================
-
-
-@bot.tree.command(name="set_birthday", description="Set your birthday (format DD/MM)")
-async def set_birthday(interaction: discord.Interaction, date: str):
-    """Allows a user to record their birthday."""
+# -------- /birthday set DD/MM --------
+@birthday.command(name="set", description="Enregistre ton anniversaire (format: DD/MM)")
+async def birthday_set(interaction: discord.Interaction, date: str):
     if not interaction.guild:
         await interaction.response.send_message(
             "Cette commande ne peut être utilisée que sur un serveur.", ephemeral=True
@@ -97,31 +86,32 @@ async def set_birthday(interaction: discord.Interaction, date: str):
     )
 
 
-@bot.tree.command(
-    name="set_birthday_channel",
-    description="Set THIS channel for birthday announcements",
-)
-async def set_birthday_channel(interaction: discord.Interaction):
-    """Configures the current channel as the birthday announcement channel."""
+# -------- /birthday show --------
+@birthday.command(name="show", description="Affiche ton anniversaire enregistré")
+async def birthday_show(interaction: discord.Interaction):
     if not interaction.guild:
         await interaction.response.send_message(
             "Cette commande ne peut être utilisée que sur un serveur.", ephemeral=True
         )
         return
     guild_id = str(interaction.guild.id)
-    if guild_id not in config:
-        config[guild_id] = {}
-    config[guild_id]["birthday_channel"] = interaction.channel.id
-    save_json(config_file, config)
-    await interaction.response.send_message(
-        f"🎉 Ce salon ({interaction.channel.mention}) est désormais configuré pour les annonces d'anniversaire.",
-        ephemeral=True,
-    )
+    user_bday = birthdays.get(guild_id, {}).get(str(interaction.user.id))
+    if user_bday:
+        await interaction.response.send_message(
+            f"🎂 Ton anniversaire est enregistré pour le {user_bday}.", ephemeral=True
+        )
+    else:
+        await interaction.response.send_message(
+            "❌ Aucun anniversaire enregistré pour toi.", ephemeral=True
+        )
 
 
-@bot.tree.command(name="upcoming_birthdays", description="List upcoming birthdays")
-async def upcoming_birthdays(interaction: discord.Interaction):
-    """Displays a list of upcoming birthdays for the server."""
+# -------- /birthday all --------
+@birthday.command(
+    name="all",
+    description="Affiche tous les anniversaires enregistrés sur le serveur",
+)
+async def birthday_all(interaction: discord.Interaction):
     if not interaction.guild:
         await interaction.response.send_message(
             "Cette commande ne peut être utilisée que sur un serveur.", ephemeral=True
@@ -147,7 +137,7 @@ async def upcoming_birthdays(interaction: discord.Interaction):
                 )
     if not upcoming:
         await interaction.response.send_message(
-            "Aucun anniversaire n'est enregistré.", ephemeral=True
+            "Aucun anniversaire n'est enregistré sur ce serveur.", ephemeral=True
         )
         return
     upcoming.sort(key=lambda x: x[0])
@@ -163,70 +153,45 @@ async def upcoming_birthdays(interaction: discord.Interaction):
         except Exception:
             username = f"Utilisateur inconnu ({user_id})"
         formatted_date = next_birthday.strftime("%d/%m")
+        day_text = "jour" if delta == 1 else "jours"
         embed.add_field(
             name=username,
-            value=f"Le **{formatted_date}** (dans **{delta}** jours)",
+            value=f"Le **{formatted_date}** (dans **{delta}** {day_text})",
             inline=False,
         )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(
-    name="send_test_announcement",
-    description="Send a test birthday announcement in this channel",
+# -------- /birthday set_channel (Admin only) --------
+@birthday.command(
+    name="set_channel",
+    description="Configure ce salon pour les annonces d'anniversaire (Admin uniquement)",
 )
 @discord.app_commands.checks.has_permissions(administrator=True)
-async def send_test_announcement(interaction: discord.Interaction):
-    """Sends a test birthday announcement in the current channel (only if this channel is configured)."""
+async def birthday_set_channel(interaction: discord.Interaction):
     if not interaction.guild:
         await interaction.response.send_message(
             "Cette commande ne peut être utilisée que sur un serveur.", ephemeral=True
         )
         return
     guild_id = str(interaction.guild.id)
-    if (
-        guild_id not in config
-        or config[guild_id].get("birthday_channel") != interaction.channel.id
-    ):
-        await interaction.response.send_message(
-            "❌ Ce salon n'est pas configuré pour les annonces d'anniversaire. Utilise la commande /set_birthday_channel ici.",
-            ephemeral=True,
-        )
-        return
-    admin_user = interaction.user
-    gif_url = random.choice(GIFS)
-    message_text = random.choice(BIRTHDAY_MESSAGES).format(user=admin_user.mention)
-    embed = discord.Embed(description=message_text, color=discord.Color.green())
-    embed.set_image(url=gif_url)
-    try:
-        msg = await interaction.channel.send(embed=embed)
-        # Create a thread to collect wishes with an @everyone ping
-        thread = await msg.create_thread(
-            name=f"Test - Souhaits pour {admin_user.name}", auto_archive_duration=1440
-        )
-        await thread.send(
-            "@everyone Bienvenue dans ce fil de discussion de test pour souhaiter un joyeux anniversaire !"
-        )
-        await interaction.response.send_message(
-            "✅ Message de test envoyé avec succès.", ephemeral=True
-        )
-    except Exception as e:
-        await interaction.response.send_message(
-            f"❌ Une erreur est survenue lors de l'envoi du message de test : {e}",
-            ephemeral=True,
-        )
+    if guild_id not in config:
+        config[guild_id] = {}
+    config[guild_id]["birthday_channel"] = interaction.channel.id
+    save_json(config_file, config)
+    await interaction.response.send_message(
+        f"🎉 Ce salon ({interaction.channel.mention}) est configuré pour les annonces d'anniversaire.",
+        ephemeral=True,
+    )
 
 
-@bot.tree.command(
-    name="remove_birthday_channel",
-    description="Remove birthday channel configuration for this server",
+# -------- /birthday remove_channel (Admin only) --------
+@birthday.command(
+    name="remove_channel",
+    description="Supprime la configuration du salon d'annonces (Admin uniquement)",
 )
 @discord.app_commands.checks.has_permissions(administrator=True)
-async def remove_birthday_channel(interaction: discord.Interaction):
-    """
-    Removes only the birthday announcement channel configuration for this server.
-    The birthday records in birthdays.json remain intact.
-    """
+async def birthday_remove_channel(interaction: discord.Interaction):
     if not interaction.guild:
         await interaction.response.send_message(
             "Cette commande ne peut être utilisée que sur un serveur.", ephemeral=True
@@ -237,102 +202,213 @@ async def remove_birthday_channel(interaction: discord.Interaction):
         del config[guild_id]["birthday_channel"]
         save_json(config_file, config)
         await interaction.response.send_message(
-            "✅ La configuration du salon d'annonces a été supprimée avec succès.",
-            ephemeral=True,
+            "✅ La configuration du salon d'annonces a été supprimée.", ephemeral=True
         )
     else:
         await interaction.response.send_message(
-            "Aucune configuration de salon d'annonces n'a été trouvée pour ce serveur.",
+            "Aucune configuration de salon d'annonces trouvée pour ce serveur.",
             ephemeral=True,
         )
 
 
-@bot.tree.command(
-    name="remove_birthday_data", description="Remove all birthday data for this server"
+# -------- Confirmation View for /birthday announce --------
+class ConfirmAnnouncementView(discord.ui.View):
+    def __init__(
+        self,
+        bot: commands.Bot,
+        interaction: discord.Interaction,
+        target: discord.Member,
+    ):
+        super().__init__(timeout=60)
+        self.bot = bot
+        self.interaction = interaction
+        self.target = target  # The member to announce the birthday for
+        self.value = None
+
+    @discord.ui.button(label="Confirmer", style=discord.ButtonStyle.green)
+    async def confirm(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        # Only the command invoker may confirm.
+        if interaction.user != self.interaction.user:
+            await interaction.response.send_message(
+                "Tu n'as pas la permission de confirmer.", ephemeral=True
+            )
+            return
+
+        await interaction.response.defer()
+        self.value = True
+
+        guild_id = str(self.interaction.guild.id)
+        channel_id = config.get(guild_id, {}).get("birthday_channel")
+        if not channel_id:
+            await interaction.followup.send(
+                "❌ Aucun salon d'annonces configuré.", ephemeral=True
+            )
+            return
+
+        channel = self.bot.get_channel(channel_id)
+        if not channel:
+            await interaction.followup.send(
+                "❌ Salon d'annonces introuvable.", ephemeral=True
+            )
+            return
+
+        if not self.target:
+            await interaction.followup.send(
+                "❌ Aucun membre spécifié pour l'annonce. Veuillez réessayer avec un membre.",
+                ephemeral=True,
+            )
+            return
+
+        gif_url = random.choice(GIFS)
+        user_display = self.target.mention
+        message_text = random.choice(BIRTHDAY_MESSAGES).format(user=user_display)
+        embed = discord.Embed(description=message_text, color=discord.Color.green())
+        embed.set_image(url=gif_url)
+
+        try:
+            msg = await channel.send(embed=embed)
+            thread_name = f"Souhaits pour {self.target.name}"
+            thread = await msg.create_thread(
+                name=thread_name, auto_archive_duration=1440
+            )
+            await thread.send(
+                "@everyone Bienvenue dans ce fil de discussion pour souhaiter un joyeux anniversaire !"
+            )
+            await interaction.followup.send(
+                "✅ Message envoyé avec succès.", ephemeral=True
+            )
+        except Exception as e:
+            await interaction.followup.send(
+                f"❌ Erreur lors de l'envoi: {e}", ephemeral=True
+            )
+
+        self.stop()
+
+    @discord.ui.button(label="Annuler", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.interaction.user:
+            await interaction.response.send_message(
+                "Tu n'as pas la permission d'annuler.", ephemeral=True
+            )
+            return
+
+        self.value = False
+        self.stop()
+        await interaction.response.send_message(
+            "Annulation de l'envoi de l'annonce.", ephemeral=True
+        )
+
+
+# -------- /birthday announce [membre] (Admin only) --------
+@birthday.command(
+    name="announce",
+    description=(
+        "Annonce l'anniversaire d'un membre et ouvre un fil de discussion. (Admin uniquement)"
+    ),
 )
 @discord.app_commands.checks.has_permissions(administrator=True)
-async def remove_birthday_data(interaction: discord.Interaction):
-    """
-    Explicitly removes all birthday data for this server.
-    This clears the birthday records from birthdays.json (leaving the channel configuration intact).
-    """
+async def birthday_announce(interaction: discord.Interaction, user: discord.Member):
     if not interaction.guild:
         await interaction.response.send_message(
             "Cette commande ne peut être utilisée que sur un serveur.", ephemeral=True
         )
         return
+
     guild_id = str(interaction.guild.id)
-    if guild_id in birthdays:
-        del birthdays[guild_id]
-        save_json(birthdays_file, birthdays)
+    configured_channel = config.get(guild_id, {}).get("birthday_channel")
+    if configured_channel != interaction.channel.id:
         await interaction.response.send_message(
-            "✅ Les données d'anniversaire pour ce serveur ont été supprimées avec succès.",
+            "❌ Ce salon n'est pas configuré pour les annonces d'anniversaire. Utilise /birthday set_channel ici.",
             ephemeral=True,
         )
-    else:
-        await interaction.response.send_message(
-            "Aucune donnée d'anniversaire n'a été trouvée pour ce serveur.",
-            ephemeral=True,
-        )
+        return
+
+    # Determine the target for the announcement.
+    if user is not None:
+        if user.id == bot.user.id:
+            # The admin provided the bot itself.
+            # Announce the bot's birthday and record today's date if not already set.
+            target = bot.user
+            if guild_id not in birthdays:
+                birthdays[guild_id] = {}
+            if str(bot.user.id) not in birthdays[guild_id]:
+                today = datetime.datetime.utcnow().strftime("%d/%m")
+                birthdays[guild_id][str(bot.user.id)] = today
+                save_json(birthdays_file, birthdays)
+        else:
+            # Announce for the specified user.
+            target = user
+
+    # Show a confirmation prompt before sending the announcement.
+    view = ConfirmAnnouncementView(bot, interaction, target=target)
+    await interaction.response.send_message(
+        "⚠️ Veuillez confirmer l'envoi de l'annonce d'anniversaire.",
+        view=view,
+        ephemeral=True,
+    )
 
 
-@bot.tree.command(name="help", description="Display help message")
-async def help_command(interaction: discord.Interaction):
-    """Displays a help message with a list of available commands in a nicely formatted embed."""
+# -------- /birthday help --------
+@birthday.command(
+    name="help", description="Affiche l'aide pour les commandes d'anniversaire"
+)
+async def birthday_help(interaction: discord.Interaction):
     is_admin = interaction.user.guild_permissions.administrator
 
     embed = discord.Embed(
-        title="🎉 Birthday Bot Help",
+        title="🎉 Aide - Birthday Bot",
         description="Voici la liste des commandes disponibles:",
         color=discord.Color.blue(),
     )
 
     # User commands
     embed.add_field(
-        name="/set_birthday <date>",
+        name="/birthday set <date>",
         value="Enregistre ton anniversaire (format: JJ/MM) 🎂",
         inline=False,
     )
     embed.add_field(
-        name="/upcoming_birthdays",
-        value="Affiche la liste des anniversaires à venir.",
+        name="/birthday show",
+        value="Affiche ton anniversaire enregistré.",
+        inline=False,
+    )
+    embed.add_field(
+        name="/birthday all",
+        value="Affiche tous les anniversaires enregistrés sur le serveur.",
         inline=False,
     )
 
-    # Admin commands
+    # Admin-only commands
     if is_admin:
         embed.add_field(
-            name="/send_test_announcement",
-            value="Envoie un message de test pour les annonces (Admin uniquement) 🔧",
+            name="/birthday set_channel",
+            value="Configure ce salon pour les annonces d'anniversaire. (Admin uniquement)",
             inline=False,
         )
         embed.add_field(
-            name="/set_birthday_channel",
-            value="Configure ce salon pour les annonces d'anniversaire (Admin uniquement) 🎉",
+            name="/birthday remove_channel",
+            value="Supprime la configuration du salon d'annonces. (Admin uniquement)",
             inline=False,
         )
         embed.add_field(
-            name="/remove_birthday_channel",
-            value="Supprime la configuration du salon d'annonces (Admin uniquement)",
-            inline=False,
-        )
-        embed.add_field(
-            name="/remove_birthday_data",
-            value="Supprime toutes les données d'anniversaire pour ce serveur (Admin uniquement)",
+            name="/birthday announce [member]",
+            value=(
+                "Envoie une annonce pour l'anniversaire d'un membre. "
+                "Un dialogue de confirmation s'affiche avant l'envoi. (Admin uniquement)"
+            ),
             inline=False,
         )
 
-    # Always available command
-    embed.add_field(name="/help", value="Affiche ce message d'aide.", inline=False)
-
+    embed.add_field(
+        name="/birthday help", value="Affiche ce message d'aide.", inline=False
+    )
     embed.set_footer(text="Merci d'utiliser Birthday Bot!")
-
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-# ===================== Birthday check ========================
-
-
+# ========================== Birthday Check Task ==========================
 @tasks.loop(time=datetime.time(hour=0, minute=0))
 async def check_birthdays():
     # Get today's date in "DD/MM" format
@@ -355,9 +431,7 @@ async def check_birthdays():
                 try:
                     user = await bot.fetch_user(int(user_id))
                 except Exception as e:
-                    print(
-                        f"Erreur lors de la récupération de l'utilisateur {user_id} : {e}"
-                    )
+                    print(f"Erreur lors de la récupération du membre {user_id} : {e}")
                     continue
                 gif_url = random.choice(GIFS)
                 message_text = random.choice(BIRTHDAY_MESSAGES).format(
@@ -377,6 +451,21 @@ async def check_birthdays():
                     )
                 except Exception as e:
                     print(f"Impossible de créer un fil pour {user.name} : {e}")
+
+
+@bot.event
+async def on_ready():
+    print(f"Connected as {bot.user}")
+    try:
+        # Clear all existing commands
+        bot.tree.clear_commands(guild=None)
+        # Add the birthday command group to all guilds
+        for guild in bot.guilds:
+            bot.tree.add_command(birthday, guild=discord.Object(id=guild.id))
+            await bot.tree.sync(guild=discord.Object(id=guild.id))
+    except Exception as e:
+        print(f"Error during guild-specific command sync: {e}")
+    check_birthdays.start()
 
 
 bot.run(TOKEN)
