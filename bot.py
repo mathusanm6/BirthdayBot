@@ -439,7 +439,10 @@ async def check_birthdays():
 async def on_ready():
     print(f"Connecté en tant que {bot.user}")
     try:
+        # Clear all existing commands
         bot.tree.clear_commands(guild=None)
+        # Add the birthday command group to the bot's tree
+        bot.tree.add_command(birthday)
         await bot.tree.sync()
         print("Commandes slash synchronisées avec succès.")
     except Exception as e:
